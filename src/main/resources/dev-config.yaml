@@ -1,0 +1,19 @@
+http:
+  port: "8081"
+ 
+db:
+  sf:
+    accountName: "UCUEVFX-FO91353"
+    warehouse: "COMPUTE_WH"
+    database: "VY"
+    schema: "BFS"
+    user: "shezinvenkitta"
+    password: "Shezin@1234567"
+    role: "ACCOUNTADMIN"
+    
+email:
+  config:
+    host: "smtp.gmail.com"
+    port: "587"
+    user: "shzshz789@gmail.com"
+    password: hgcdjqokqyqxizos

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+    <http:listener-config name="bank-customer-acct-creation-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="bank-customer-acct-creation-config" api="resource::5d16cf0e-99b5-4c9f-9287-18ef90c56845:bank-customer-acct-creation:1.0.0:raml:zip:bank-customer-acct-creation.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="bank-customer-acct-creation-main">
+        <http:listener config-ref="bank-customer-acct-creation-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="bank-customer-acct-creation-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="bank-customer-acct-creation-console">
+        <http:listener config-ref="bank-customer-acct-creation-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="bank-customer-acct-creation-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+	<flow name="post:\createAccount:application\json:bank-customer-acct-creation-config">
+		<ee:transform doc:name="SetqueryParamsInfo" doc:id="b8aae109-30b6-4522-82dc-100e80b0ca6e" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="queryParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	customerName:attributes.queryParams.customerName,
+	bank:attributes.queryParams.bank,
+	accType:attributes.queryParams."type",
+	branchName:attributes.queryParams.branchName
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="OriginalPayload" doc:id="f5937594-7728-4902-8d1e-ec8a980ce2ca" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="originalPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<snowflake:select doc:name="Select" doc:id="f0b96d66-8343-4086-941f-49a5bb3cea6a" config-ref="Snowflake_Config">
+			<snowflake:sql ><![CDATA[SELECT custAccNum,custName from BFS.Bank_Transactions where custAccNum = :custAccNum]]></snowflake:sql>
+			<snowflake:input-parameters ><![CDATA[#[{
+	custAccNum: vars.originalPayload.accountNum
+}]]]></snowflake:input-parameters>
+		</snowflake:select>
+		<choice doc:name="Choice" doc:id="d9117268-eaaf-40b5-97dd-11cc1b2db841" >
+			<when expression="#[sizeOf(payload)&gt;=1]">
+				<ee:transform doc:name="Transform Message" doc:id="5f96a4dd-ace3-4ba2-a620-db6602c3e10f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Account" ++ vars.originalPayload.accountNum  ++ "Already exist"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="24dbef1f-37b4-45ec-8461-d243a4d6d6be">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	custName: vars.queryParams.customerName,
+	custAccNum: vars.originalPayload.accountNum,
+	atmPin: vars.originalPayload.atmPin,
+	bankName:vars.queryParams.bank,
+	accountType:vars.queryParams.accType,
+	ifscCode:vars.originalPayload.ifscCode,
+	branchName:vars.queryParams.branchName,
+	transactionTimeStamp: now(),
+	mailId:vars.originalPayload.mailId,
+	phoneNumber:vars.originalPayload.contact
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<snowflake:insert doc:name="Insert" doc:id="eb2adc12-e6ab-4f9a-8be3-1b5354f1c520" config-ref="Snowflake_Config">
+					<snowflake:sql ><![CDATA[insert into BFS.Bank_Transactions(custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,transactionTimeStamp,mailId,phoneNumber) VALUES (:custName,:custAccNum,:atmPin,:bankName,:accountType,:ifscCode,:branchName,:transactionTimeStamp,:mailId,:phoneNumber)]]></snowflake:sql>
+					<snowflake:input-parameters ><![CDATA[#[payload]]]></snowflake:input-parameters>
+				</snowflake:insert>
+				<flow-ref doc:name="Flow Reference" doc:id="7183d6af-42b0-490e-afda-2f4e4abeeb6f" name="bank-customer-email-generation"/>
+				<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  successResponse: {
+    "“status”": "“Account Created Successfully with Account Number" ++ vars.originalPayload.accountNum 
+  }
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="619c9017-ada2-4552-8304-eaabb91a2aa6" message="Endlogger "/>
+    </flow>
+	<flow name="bank-customer-email-generation" doc:id="d945b411-cb19-4798-813c-2c3b7135e7e7" >
+		<logger level="INFO" doc:name="Logger" doc:id="c37db647-1019-42b4-8f46-0ce8504da571" message="--Email-generation-flow-started-------"/>
+		<ee:transform doc:name="Transform Message" doc:id="138db260-56f1-401c-8d28-fbc1019e92b4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Congratulations ! Your account is created Successfully with Account Number" ++ vars.originalPayload.accountNum as String ++ "with" ++ vars.queryParams.bank as String ++"."]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<email:send doc:name="Send" doc:id="92b44e09-528c-4d4f-b259-204852cf2196" config-ref="Email_SMTP" fromAddress="${email.config.user}" subject=" Congratulations ! Your account is created ">
+			<email:to-addresses >
+				<email:to-address value="mohamed.shezinvc@gmail.com" />
+			</email:to-addresses>
+			<email:body contentType="text/plain">
+			</email:body>
+		</email:send>
+		<logger level="INFO" doc:name="Logger" doc:id="8cb1d11c-31e9-434e-b375-399209648f31" message="--Email-generation-flow-End-------"/>
+	</flow>
+</mule>
